@@ -7,6 +7,8 @@ services:
     image: redis:5.0.6-alpine
     networks:
     - net_sentry
+    volumes:
+    - vol_redis:/data
 
   postgres:
     image: postgres:11.5-alpine
@@ -21,37 +23,31 @@ services:
   server:
     image: sentry:9.1.2
     environment:
-    - SENTRY_SECRET_KEY=sentry_secret_key_123
-    command: upgrade --noinput && run web
+    - SENTRY_SECRET_KEY=y#(dmr6@vx603nd^1=s2=z_7vplow&(+aar#1hlnjp&%0p6ncv
+    - SENTRY_REDIS_HOST=redis
+    - SENTRY_REDIS_PORT=6379
+    - SENTRY_REDIS_DB=0
+    - SENTRY_POSTGRES_HOST=postgres
+    - SENTRY_POSTGRES_PORT=5432
+    - SENTRY_DB_NAME=postgres
+    - SENTRY_DB_USER=sentry
+    - SENTRY_DB_PASSWORD=secret
+    command: /bin/bash -c "sentry upgrade --noinput && sentry run web"
+    ports:
+    - 9000:9000
     networks:
     - net_sentry
+    volumes:
+    - vol_sentry:/var/lib/sentry/files
     depends_on:
     - redis
     - postgres
-
-  cron:
-    image: sentry:9.1.2
-    environment:
-    - SENTRY_SECRET_KEY=sentry_secret_key_123
-    command: run cron
-    networks:
-    - net_sentry
-    depends_on:
-    - server
-
-  worker:
-    image: sentry:9.1.2
-    environment:
-    - SENTRY_SECRET_KEY=sentry_secret_key_123
-    command: run worker
-    networks:
-    - net_sentry
-    depends_on:
-    - server
 
 networks:
   net_sentry:
 
 volumes:
+  vol_redis:
   vol_postgres:
+  vol_sentry:
 
