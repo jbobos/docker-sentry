@@ -1,0 +1,57 @@
+# Sentry in Docker
+# https://hub.docker.com/_/sentry/
+#
+version: '3.1'
+services:
+  redis:
+    image: redis:5.0.6-alpine
+    networks:
+    - net_sentry
+
+  postgres:
+    image: postgres:11.5-alpine
+    environment:
+    - POSTGRES_USER=sentry
+    - POSTGRES_PASSWORD=secret
+    networks:
+    - net_sentry
+    volumes:
+    - vol_postgres:/var/lib/postgresql/data
+
+  server:
+    image: sentry:9.1.2
+    environment:
+    - SENTRY_SECRET_KEY=sentry_secret_key_123
+    command: upgrade --noinput && run web
+    networks:
+    - net_sentry
+    depends_on:
+    - redis
+    - postgres
+
+  cron:
+    image: sentry:9.1.2
+    environment:
+    - SENTRY_SECRET_KEY=sentry_secret_key_123
+    command: run cron
+    networks:
+    - net_sentry
+    depends_on:
+    - server
+
+  worker:
+    image: sentry:9.1.2
+    environment:
+    - SENTRY_SECRET_KEY=sentry_secret_key_123
+    command: run worker
+    networks:
+    - net_sentry
+    depends_on:
+    - server
+
+networks:
+  net_sentry:
+
+volumes:
+  vol_postgres:
+
