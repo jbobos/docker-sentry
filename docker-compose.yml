@@ -20,28 +20,43 @@ services:
     volumes:
     - vol_postgres:/var/lib/postgresql/data
 
-  server:
+  web:
     image: sentry:9.1.2
-    environment:
-    - SENTRY_SECRET_KEY=y#(dmr6@vx603nd^1=s2=z_7vplow&(+aar#1hlnjp&%0p6ncv
-    - SENTRY_REDIS_HOST=redis
-    - SENTRY_REDIS_PORT=6379
-    - SENTRY_REDIS_DB=0
-    - SENTRY_POSTGRES_HOST=postgres
-    - SENTRY_POSTGRES_PORT=5432
-    - SENTRY_DB_NAME=postgres
-    - SENTRY_DB_USER=sentry
-    - SENTRY_DB_PASSWORD=secret
+    env_file: sentry.env
     command: /bin/bash -c "sentry upgrade --noinput && sentry run web"
     ports:
     - 9000:9000
     networks:
     - net_sentry
     volumes:
-    - vol_sentry:/var/lib/sentry/files
+    - vol_sentry_web:/var/lib/sentry/files
     depends_on:
     - redis
     - postgres
+
+  cron:
+    image: sentry:9.1.2
+    env_file: sentry.env
+    command: /bin/bash -c "sentry run cron"
+    networks:
+    - net_sentry
+    volumes:
+    - vol_sentry_cron:/var/lib/sentry/files
+    depends_on:
+    - web
+
+  worker:
+    image: sentry:9.1.2
+    env_file: sentry.env
+    environment:
+    - C_FORCE_ROOT=yes
+    command: /bin/bash -c "sentry run worker"
+    networks:
+    - net_sentry
+    volumes:
+    - vol_sentry_worker:/var/lib/sentry/files
+    depends_on:
+    - web
 
 networks:
   net_sentry:
@@ -49,5 +64,7 @@ networks:
 volumes:
   vol_redis:
   vol_postgres:
-  vol_sentry:
+  vol_sentry_web:
+  vol_sentry_cron:
+  vol_sentry_worker:
 
